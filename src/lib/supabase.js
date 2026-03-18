@@ -1,7 +1,7 @@
 // ─── REEMPLAZA ESTOS DOS VALORES CON LOS DE TU PROYECTO SUPABASE ────────────
 // Ve a: supabase.com → Tu proyecto → Settings → API
-const SUPABASE_URL = 'https://TU_PROJECT.supabase.co'
-const SUPABASE_ANON_KEY = 'TU_ANON_KEY'
+const SUPABASE_URL = 'https://zmkhrhevguytxnlivpoa.supabase.co'
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpta2hyaGV2Z3V5dHhubGl2cG9hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4NjgyNjAsImV4cCI6MjA4OTQ0NDI2MH0.iQmf0zKpPI526RS8apFSLbI3p5Vy8aYwgWKtX9uhZXg'
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { createClient } from '@supabase/supabase-js'
