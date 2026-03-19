@@ -116,6 +116,17 @@ export async function addMaintenance(vehicleId, d) {
   })
 }
 
+export async function updateMaintenance(id, d) {
+  await supabase.from('maintenances').update({
+    fecha: d.fecha,
+    tipo: d.tipo,
+    km_al_momento: d.km_al_momento ? +d.km_al_momento : null,
+    costo: d.costo ? +d.costo : null,
+    taller: d.taller,
+    notas: d.notas,
+  }).eq('id', id)
+}
+
 export async function deleteMaintenance(id) {
   await supabase.from('maintenances').delete().eq('id', id)
 }
