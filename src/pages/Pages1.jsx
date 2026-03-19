@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react'
 import { Modal, Field, Badge, MaintRow, InfoRow, PhotoUpload, Empty, Spinner, StatCard, ProgBar } from '../components/UI.jsx'
-import { saveVehicle, uploadPhoto, addMaintenance, deleteMaintenance, addCost, deleteCost } from '../lib/hooks.js'
+import { saveVehicle, uploadPhoto, addMaintenance, updateMaintenance, deleteMaintenance, addCost, deleteCost } from '../lib/hooks.js'
 import { calcPredictive, getIntervals, fmtKm, fmtCOP, fmtDate, daysUntil, docStatus, today } from '../lib/logic.js'
 
 const COST_TYPES = ['Salario conductor', 'Dotación', 'Combustible', 'Seguro', 'Parqueadero', 'Peajes', 'Lavado', 'Multa', 'Repuesto', 'Otro']
@@ -421,8 +421,11 @@ export function Vehiculos({ vehicle, maintenances, costs, onSaved }) {
 // MANTENIMIENTO
 // ══════════════════════════════════════════════════════════════════════════════
 export function Mantenimiento({ vehicles, allMaint, selId }) {
-  const [adding, setAdding] = useState(false)
-  const [form, setForm]     = useState({ fecha: today(), vehicle_id: selId || '' })
+  const [adding, setAdding]     = useState(false)
+  const [editing, setEditing]   = useState(null)  // record being edited
+  const [postponing, setPostp]  = useState(null)  // { vehicleId, tipo, kmActual }
+  const [postponeKm, setPostKm] = useState(1000)
+  const [form, setForm]         = useState({ fecha: today(), vehicle_id: selId || '' })
   const set = k => e => setForm(p => ({ ...p, [k]: e.target.value }))
 
   const selV    = vehicles.find(v => v.id === form.vehicle_id)
@@ -432,9 +435,43 @@ export function Mantenimiento({ vehicles, allMaint, selId }) {
   async function handleSave() {
     if (!form.vehicle_id) return alert('Selecciona un vehículo')
     if (!form.km_al_momento) return alert('Ingresa los km actuales')
-    await addMaintenance(form.vehicle_id, form)
-    setAdding(false)
+    if (editing) {
+      await updateMaintenance(editing, form)
+      setEditing(null)
+    } else {
+      await addMaintenance(form.vehicle_id, form)
+      setAdding(false)
+    }
     setForm({ fecha: today(), vehicle_id: selId || '' })
+  }
+
+  function openEdit(m, vehicleId) {
+    setForm({
+      vehicle_id: vehicleId,
+      fecha: m.fecha,
+      tipo: m.tipo,
+      km_al_momento: m.km_al_momento,
+      costo: m.costo,
+      taller: m.taller,
+      notas: m.notas,
+    })
+    setEditing(m.id)
+  }
+
+  // Posponer: crea un registro ficticio con km_al_momento = kmActual + postponeKm
+  // Esto empuja el próximo mantenimiento X km hacia adelante
+  async function handlePostpone() {
+    const v = vehicles.find(v => v.id === postponing.vehicleId)
+    if (!v) return
+    const kmBase = (v.km_actual || 0) + parseInt(postponeKm)
+    await addMaintenance(postponing.vehicleId, {
+      fecha: today(),
+      tipo: postponing.tipo,
+      km_al_momento: kmBase,
+      notas: `Pospuesto ${postponeKm} km — registrado manualmente a ${kmBase.toLocaleString('es-CO')} km`,
+    })
+    setPostp(null)
+    setPostKm(1000)
   }
 
   return (
@@ -442,11 +479,11 @@ export function Mantenimiento({ vehicles, allMaint, selId }) {
       <div className="topbar">
         <div><div className="page-title">Mantenimiento</div>
           <div className="page-sub">Plan oficial JMC · JAC · Estado de salud de la flota</div></div>
-        <button className="btn btn-p" onClick={() => setAdding(true)}>+ Registrar mantenimiento</button>
+        <button className="btn btn-p" onClick={() => { setAdding(true); setEditing(null); setForm({ fecha: today(), vehicle_id: selId || '' }) }}>+ Registrar</button>
       </div>
       <div className="content">
         {vehicles.map(v => {
-          const pred  = calcPredictive(v, allMaint[v.id] || [])
+          const pred   = calcPredictive(v, allMaint[v.id] || [])
           const maints = allMaint[v.id] || []
           return (
             <div key={v.id} className="card mb4">
@@ -457,20 +494,41 @@ export function Mantenimiento({ vehicles, allMaint, selId }) {
                   <span style={{ fontSize: 12, color: 'var(--t3)' }}>{fmtKm(v.km_actual)} actuales</span>
                 </div>
               </div>
-              {pred.map(p => <MaintRow key={p.tipo} item={p} />)}
+
+              {pred.map(p => (
+                <div key={p.tipo} style={{ position: 'relative' }}>
+                  <MaintRow item={p} />
+                  {p.estado !== 'ok' && (
+                    <button
+                      className="btn btn-g btn-sm"
+                      style={{ position: 'absolute', right: 0, top: '50%', transform: 'translateY(-50%)', fontSize: 11 }}
+                      onClick={() => { setPostp({ vehicleId: v.id, tipo: p.tipo, kmActual: v.km_actual || 0 }); setPostKm(1000) }}
+                    >
+                      ⏭ Posponer
+                    </button>
+                  )}
+                </div>
+              ))}
+
               {maints.length > 0 && (
                 <div style={{ marginTop: 18 }}>
-                  <div className="section-hd"><div className="section-t">Últimos registros</div></div>
+                  <div className="section-hd"><div className="section-t">Historial de registros</div></div>
                   <table className="tbl">
-                    <thead><tr><th>Fecha</th><th>Tipo</th><th>Km</th><th>Taller</th><th>Notas</th><th>Costo</th></tr></thead>
-                    <tbody>{maints.slice(0, 6).map(m => (
+                    <thead><tr><th>Fecha</th><th>Tipo</th><th>Km</th><th>Taller</th><th>Costo</th><th></th></tr></thead>
+                    <tbody>{maints.map(m => (
                       <tr key={m.id}>
                         <td style={{ color: 'var(--t3)' }}>{fmtDate(m.fecha)}</td>
-                        <td style={{ fontWeight: 500 }}>{m.tipo}</td>
+                        <td style={{ fontWeight: 500 }}>
+                          {m.tipo}
+                          {m.notas?.includes('Pospuesto') && <span style={{ marginLeft: 6, fontSize: 10, color: 'var(--amber)', background: 'var(--amberbg)', padding: '1px 6px', borderRadius: 99 }}>pospuesto</span>}
+                        </td>
                         <td style={{ fontFamily: 'var(--mono)' }}>{m.km_al_momento?.toLocaleString('es-CO') || '—'}</td>
                         <td style={{ color: 'var(--t2)' }}>{m.taller || '—'}</td>
-                        <td style={{ color: 'var(--t3)', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.notas || '—'}</td>
                         <td style={{ fontFamily: 'var(--mono)', fontWeight: 500 }}>{fmtCOP(m.costo)}</td>
+                        <td style={{ display: 'flex', gap: 5 }}>
+                          <button className="btn-icon" style={{ fontSize: 11 }} title="Editar" onClick={() => openEdit(m, v.id)}>✏</button>
+                          <button className="btn-icon" style={{ fontSize: 11 }} title="Eliminar" onClick={() => { if (window.confirm('¿Eliminar este registro?')) deleteMaintenance(m.id) }}>✕</button>
+                        </td>
                       </tr>
                     ))}</tbody>
                   </table>
@@ -481,16 +539,21 @@ export function Mantenimiento({ vehicles, allMaint, selId }) {
         })}
       </div>
 
-      {adding && (
-        <Modal title="Registrar mantenimiento" onClose={() => setAdding(false)} onSave={handleSave}>
+      {/* Modal agregar / editar */}
+      {(adding || editing) && (
+        <Modal
+          title={editing ? 'Editar mantenimiento' : 'Registrar mantenimiento'}
+          onClose={() => { setAdding(false); setEditing(null); setForm({ fecha: today(), vehicle_id: selId || '' }) }}
+          onSave={handleSave}
+        >
           <div className="form-row">
             <Field label="Vehículo">
-              <select value={form.vehicle_id} onChange={e => setForm(p => ({ ...p, vehicle_id: e.target.value, tipo: '' }))}>
+              <select value={form.vehicle_id} onChange={e => setForm(p => ({ ...p, vehicle_id: e.target.value, tipo: '' }))} disabled={!!editing}>
                 <option value="">Seleccionar...</option>
                 {vehicles.map(v => <option key={v.id} value={v.id}>{v.placa} · {v.marca}</option>)}
               </select>
             </Field>
-            <Field label="Fecha"><input type="date" value={form.fecha} onChange={set('fecha')} /></Field>
+            <Field label="Fecha"><input type="date" value={form.fecha || ''} onChange={set('fecha')} /></Field>
           </div>
           <div className="form-row">
             <Field label={`Tipo${selV ? ` · ${selV.marca}` : ''}`}>
@@ -501,16 +564,35 @@ export function Mantenimiento({ vehicles, allMaint, selId }) {
             </Field>
             <Field label="Km al momento"><input type="number" value={form.km_al_momento || ''} onChange={set('km_al_momento')} /></Field>
           </div>
-          {selItem?.nota && (
-            <div className="hint-box">💡 <strong>{selV?.marca}:</strong> {selItem.nota}</div>
-          )}
+          {selItem?.nota && <div className="hint-box">💡 <strong>{selV?.marca}:</strong> {selItem.nota}</div>}
           <div className="form-row">
             <Field label="Costo (COP)"><input type="number" value={form.costo || ''} onChange={set('costo')} /></Field>
             <Field label="Taller / Proveedor"><input value={form.taller || ''} onChange={set('taller')} /></Field>
           </div>
-          <Field label="Notas — qué se hizo exactamente" full>
-            <textarea rows={3} value={form.notas || ''} onChange={set('notas')} placeholder="Describe qué se hizo, piezas cambiadas, observaciones..." />
+          <Field label="Notas" full>
+            <textarea rows={3} value={form.notas || ''} onChange={set('notas')} placeholder="Qué se hizo, piezas cambiadas, observaciones..." />
           </Field>
+        </Modal>
+      )}
+
+      {/* Modal posponer */}
+      {postponing && (
+        <Modal title={`Posponer · ${postponing.tipo}`} onClose={() => setPostp(null)} onSave={handlePostpone} saveLabel="Posponer">
+          <div style={{ fontSize: 13, color: 'var(--t2)', marginBottom: 16, lineHeight: 1.7 }}>
+            Este mantenimiento quedará en el radar pero el contador se reinicia desde <strong style={{ color: 'var(--t1)' }}>{(postponing.kmActual + parseInt(postponeKm || 0)).toLocaleString('es-CO')} km</strong>.
+          </div>
+          <Field label="Posponer cuántos km">
+            <select value={postponeKm} onChange={e => setPostKm(e.target.value)}>
+              <option value={500}>500 km (~4 días)</option>
+              <option value={1000}>1.000 km (~8 días)</option>
+              <option value={2000}>2.000 km (~15 días)</option>
+              <option value={3000}>3.000 km (~23 días)</option>
+              <option value={5000}>5.000 km (~38 días)</option>
+            </select>
+          </Field>
+          <div className="hint-box" style={{ marginTop: 10 }}>
+            ⏭ El próximo mantenimiento se calculará desde {(postponing.kmActual + parseInt(postponeKm || 0)).toLocaleString('es-CO')} km. Quedará en amarillo como recordatorio.
+          </div>
         </Modal>
       )}
     </div>
