@@ -59,7 +59,7 @@ export async function uploadPhoto(vehicleId, file) {
   return data.publicUrl
 }
 
-// ── KM Logs (from SATRACK) ────────────────────────────────────────────────────
+// ── KM Logs ───────────────────────────────────────────────────────────────────
 export function useKmLogs(vehicleId) {
   const { data: logs, loading, reload } = useTable(
     'km_logs',
@@ -84,7 +84,6 @@ export async function addKmLog(vehicleId, d) {
 }
 
 export async function importSatrackData(rows) {
-  // rows = [{ fecha, placa, km_dia, excesos }]
   for (const row of rows) {
     const { data: veh } = await supabase.from('vehicles').select('id,km_actual').eq('placa', row.placa.replace('-','')).maybeSingle()
     if (!veh) continue
