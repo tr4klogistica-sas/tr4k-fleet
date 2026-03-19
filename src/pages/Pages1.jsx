@@ -422,27 +422,51 @@ export function Vehiculos({ vehicle, maintenances, costs, onSaved }) {
 // ══════════════════════════════════════════════════════════════════════════════
 export function Mantenimiento({ vehicles, allMaint, selId }) {
   const [adding, setAdding]     = useState(false)
-  const [editing, setEditing]   = useState(null)  // record being edited
-  const [postponing, setPostp]  = useState(null)  // { vehicleId, tipo, kmActual }
+  const [editing, setEditing]   = useState(null)
+  const [postponing, setPostp]  = useState(null)
   const [postponeKm, setPostKm] = useState(1000)
-  const [form, setForm]         = useState({ fecha: today(), vehicle_id: selId || '' })
+  const [saving, setSaving]     = useState(false)
+
+  // Siempre inicializa con el primer vehículo disponible si no hay selId
+  const defaultVehicleId = selId || vehicles[0]?.id || ''
+  const [form, setForm] = useState({ fecha: today(), vehicle_id: defaultVehicleId })
   const set = k => e => setForm(p => ({ ...p, [k]: e.target.value }))
+
+  // Sync vehicle_id cuando llegan los vehículos o cambia selId
+  React.useEffect(() => {
+    setForm(p => ({
+      ...p,
+      vehicle_id: p.vehicle_id || selId || vehicles[0]?.id || ''
+    }))
+  }, [selId, vehicles.length])
 
   const selV    = vehicles.find(v => v.id === form.vehicle_id)
   const tipos   = selV ? [...getIntervals(selV).map(i => i.tipo), 'Reparación eléctrica', 'Reparación mecánica', 'Revisión general', 'Otro'] : []
   const selItem = selV ? getIntervals(selV).find(i => i.tipo === form.tipo) : null
 
+  function resetForm() {
+    setForm({ fecha: today(), vehicle_id: selId || vehicles[0]?.id || '' })
+  }
+
   async function handleSave() {
     if (!form.vehicle_id) return alert('Selecciona un vehículo')
-    if (!form.km_al_momento) return alert('Ingresa los km actuales')
-    if (editing) {
-      await updateMaintenance(editing, form)
-      setEditing(null)
-    } else {
-      await addMaintenance(form.vehicle_id, form)
-      setAdding(false)
+    if (!form.tipo) return alert('Selecciona el tipo de mantenimiento')
+    if (!form.km_al_momento) return alert('Ingresa los km al momento')
+    setSaving(true)
+    try {
+      if (editing) {
+        await updateMaintenance(editing, form)
+        setEditing(null)
+      } else {
+        await addMaintenance(form.vehicle_id, form)
+        setAdding(false)
+      }
+      resetForm()
+    } catch(e) {
+      alert('Error al guardar: ' + e.message)
+    } finally {
+      setSaving(false)
     }
-    setForm({ fecha: today(), vehicle_id: selId || '' })
   }
 
   function openEdit(m, vehicleId) {
@@ -479,7 +503,7 @@ export function Mantenimiento({ vehicles, allMaint, selId }) {
       <div className="topbar">
         <div><div className="page-title">Mantenimiento</div>
           <div className="page-sub">Plan oficial JMC · JAC · Estado de salud de la flota</div></div>
-        <button className="btn btn-p" onClick={() => { setAdding(true); setEditing(null); setForm({ fecha: today(), vehicle_id: selId || '' }) }}>+ Registrar</button>
+        <button className="btn btn-p" onClick={() => { resetForm(); setEditing(null); setAdding(true) }}>+ Registrar</button>
       </div>
       <div className="content">
         {vehicles.map(v => {
@@ -543,8 +567,9 @@ export function Mantenimiento({ vehicles, allMaint, selId }) {
       {(adding || editing) && (
         <Modal
           title={editing ? 'Editar mantenimiento' : 'Registrar mantenimiento'}
-          onClose={() => { setAdding(false); setEditing(null); setForm({ fecha: today(), vehicle_id: selId || '' }) }}
+          onClose={() => { setAdding(false); setEditing(null); resetForm() }}
           onSave={handleSave}
+          saveLabel={saving ? 'Guardando...' : (editing ? 'Guardar cambios' : 'Registrar')}
         >
           <div className="form-row">
             <Field label="Vehículo">
