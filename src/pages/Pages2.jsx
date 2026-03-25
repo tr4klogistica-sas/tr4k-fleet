@@ -122,7 +122,14 @@ export function KmVelocidad({ vehicles, allKm, selId }) {
   // agrupar por vehículo
   const byVeh = {}
   logs.forEach(l => {
-    const km = l.km_dia || (l.km_inicio && l.km_fin ? l.km_fin - l.km_inicio : 0)
+    // Prioridad: km_fin - km_inicio (dato real del conductor)
+    // Fallback: km_dia (dato SATRACK) si no hay odómetros
+    let km = 0
+    if (l.km_inicio && l.km_fin && l.km_fin > l.km_inicio) {
+      km = l.km_fin - l.km_inicio
+    } else if (l.km_dia && l.km_dia > 0) {
+      km = l.km_dia
+    }
     if (!byVeh[l.vehicle_id]) byVeh[l.vehicle_id] = { km: 0, dias: 0, excesos: 0, timeline: [] }
     byVeh[l.vehicle_id].km      += km
     byVeh[l.vehicle_id].excesos += (l.excesos || 0)
@@ -139,7 +146,12 @@ export function KmVelocidad({ vehicles, allKm, selId }) {
   // KM por fecha (para gráfico de barras)
   const byFecha = {}
   logs.forEach(l => {
-    const km = l.km_dia || (l.km_inicio && l.km_fin ? l.km_fin - l.km_inicio : 0)
+    let km = 0
+    if (l.km_inicio && l.km_fin && l.km_fin > l.km_inicio) {
+      km = l.km_fin - l.km_inicio
+    } else if (l.km_dia && l.km_dia > 0) {
+      km = l.km_dia
+    }
     byFecha[l.fecha] = (byFecha[l.fecha] || 0) + km
   })
   const fechasSorted = Object.entries(byFecha).sort(([a],[b]) => a.localeCompare(b))
