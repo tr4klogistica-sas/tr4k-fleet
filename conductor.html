@@ -1,0 +1,968 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>TR4K — Reporte Conductor</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800;900&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --negro: #0a0a0a;
+  --gris1: #111111;
+  --gris2: #1a1a1a;
+  --gris3: #252525;
+  --borde: #2e2e2e;
+  --amarillo: #f5c800;
+  --amarillo-bg: rgba(245,200,0,0.08);
+  --blanco: #f0ede8;
+  --gris-txt: #777;
+  --verde: #27c95e;
+  --verde-bg: rgba(39,201,94,0.1);
+  --rojo: #e63946;
+  --rojo-bg: rgba(230,57,70,0.1);
+  --azul: #3a9df8;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+
+body {
+  background: var(--negro);
+  color: var(--blanco);
+  font-family: 'Barlow', sans-serif;
+  min-height: 100dvh;
+  overflow-x: hidden;
+}
+
+/* HEADER */
+.header {
+  background: var(--negro);
+  border-bottom: 2px solid var(--amarillo);
+  padding: 14px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 99;
+}
+.logo-txt {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 26px;
+  font-weight: 900;
+  letter-spacing: 4px;
+  color: var(--amarillo);
+}
+.logo-sub {
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 2.5px;
+  color: var(--gris-txt);
+  text-transform: uppercase;
+  margin-top: 1px;
+}
+.live-clock {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--gris-txt);
+  letter-spacing: 1px;
+}
+
+/* PROGRESO */
+.progress-bar {
+  display: flex;
+  height: 3px;
+  background: var(--gris2);
+}
+.progress-fill {
+  background: var(--amarillo);
+  transition: width 0.4s ease;
+  height: 100%;
+}
+
+/* CONTENIDO */
+.wrap {
+  max-width: 420px;
+  margin: 0 auto;
+  padding: 22px 16px 60px;
+}
+
+/* PANTALLAS */
+.screen { display: none; }
+.screen.visible {
+  display: block;
+  animation: slideUp 0.3s ease;
+}
+@keyframes slideUp {
+  from { opacity:0; transform:translateY(14px); }
+  to   { opacity:1; transform:translateY(0); }
+}
+
+/* LABELS */
+.eyebrow {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  color: var(--amarillo);
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+.big-title {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 34px;
+  font-weight: 900;
+  line-height: 1.0;
+  margin-bottom: 22px;
+  color: var(--blanco);
+}
+
+/* TARJETA */
+.card {
+  background: var(--gris1);
+  border: 1px solid var(--borde);
+  border-radius: 14px;
+  padding: 18px;
+  margin-bottom: 12px;
+}
+.card-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 2.5px;
+  color: var(--gris-txt);
+  text-transform: uppercase;
+  margin-bottom: 12px;
+}
+
+/* GRID PLACAS */
+.placas-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 9px;
+}
+.placa-item {
+  background: var(--gris2);
+  border: 2px solid var(--borde);
+  border-radius: 12px;
+  padding: 15px 10px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.18s;
+  position: relative;
+  overflow: hidden;
+}
+.placa-item:active { transform: scale(0.96); }
+.placa-item.sel {
+  border-color: var(--amarillo);
+  background: var(--amarillo-bg);
+}
+.placa-num {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 21px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  color: var(--blanco);
+  display: block;
+}
+.placa-item.sel .placa-num { color: var(--amarillo); }
+.placa-marca {
+  font-size: 11px;
+  color: var(--gris-txt);
+  margin-top: 3px;
+  display: block;
+}
+.placa-check {
+  position: absolute;
+  top: 7px;
+  right: 8px;
+  width: 16px;
+  height: 16px;
+  background: var(--amarillo);
+  border-radius: 50%;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  color: var(--negro);
+  font-weight: 900;
+}
+.placa-item.sel .placa-check { display: flex; }
+
+/* TURNO SELECTOR */
+.turno-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.turno-btn {
+  border: 2px solid var(--borde);
+  border-radius: 12px;
+  padding: 18px 8px;
+  text-align: center;
+  cursor: pointer;
+  background: var(--gris2);
+  transition: all 0.18s;
+}
+.turno-btn:active { transform: scale(0.97); }
+.turno-btn.sel {
+  border-color: var(--amarillo);
+  background: var(--amarillo-bg);
+}
+.turno-icon { font-size: 26px; display: block; margin-bottom: 5px; }
+.turno-label {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: var(--blanco);
+}
+.turno-btn.sel .turno-label { color: var(--amarillo); }
+.turno-sub { font-size: 11px; color: var(--gris-txt); margin-top: 2px; }
+
+/* INPUT */
+.field-wrap { margin-bottom: 14px; }
+.field-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  color: var(--gris-txt);
+  text-transform: uppercase;
+  margin-bottom: 8px;
+  display: block;
+}
+.field-input {
+  background: var(--gris2);
+  border: 2px solid var(--borde);
+  border-radius: 11px;
+  padding: 15px 16px;
+  color: var(--blanco);
+  font-family: 'Barlow', sans-serif;
+  font-size: 20px;
+  font-weight: 600;
+  width: 100%;
+  outline: none;
+  -webkit-appearance: none;
+  transition: border-color 0.2s;
+}
+.field-input:focus { border-color: var(--amarillo); }
+.field-input::placeholder { color: var(--gris-txt); font-weight: 400; font-size: 16px; }
+textarea.field-input {
+  resize: none;
+  min-height: 110px;
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 1.55;
+}
+.field-hint {
+  font-size: 11px;
+  color: var(--gris-txt);
+  margin-top: 6px;
+}
+
+/* KM DISPLAY */
+.km-delta {
+  background: var(--gris3);
+  border-radius: 10px;
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 10px;
+}
+.km-delta-label { font-size: 11px; color: var(--gris-txt); letter-spacing: 1px; text-transform: uppercase; }
+.km-delta-val {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--amarillo);
+}
+
+/* NOVEDAD BADGES */
+.novedad-tipos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.nov-tag {
+  background: var(--gris2);
+  border: 1.5px solid var(--borde);
+  border-radius: 20px;
+  padding: 7px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--gris-txt);
+  cursor: pointer;
+  transition: all 0.18s;
+}
+.nov-tag.sel {
+  border-color: var(--rojo);
+  background: var(--rojo-bg);
+  color: #ff7a84;
+}
+
+/* RESUMEN */
+.resumen-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 13px 0;
+  border-bottom: 1px solid var(--borde);
+}
+.resumen-row:last-child { border-bottom: none; }
+.res-label { font-size: 13px; color: var(--gris-txt); }
+.res-val {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--blanco);
+  text-align: right;
+}
+.res-val.highlight { color: var(--amarillo); font-size: 22px; }
+.res-val.ok { color: var(--verde); }
+
+/* BOTÓN PRINCIPAL */
+.btn-main {
+  background: var(--amarillo);
+  color: var(--negro);
+  border: none;
+  border-radius: 14px;
+  padding: 18px;
+  width: 100%;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.18s;
+  margin-top: 8px;
+}
+.btn-main:active { transform: scale(0.98); opacity: 0.9; }
+.btn-main:disabled { background: var(--gris3); color: var(--gris-txt); cursor: not-allowed; }
+
+.btn-sec {
+  background: transparent;
+  color: var(--gris-txt);
+  border: 1.5px solid var(--borde);
+  border-radius: 14px;
+  padding: 15px;
+  width: 100%;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  cursor: pointer;
+  margin-top: 10px;
+  transition: all 0.18s;
+}
+.btn-sec:active { opacity: 0.7; }
+
+/* ESTADO FINAL */
+.estado-icon {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  margin: 0 auto 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 36px;
+}
+.estado-icon.ok { background: var(--verde-bg); }
+.estado-icon.err { background: var(--rojo-bg); }
+.estado-titulo {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 32px;
+  font-weight: 900;
+  text-align: center;
+  margin-bottom: 8px;
+}
+.estado-sub { font-size: 14px; color: var(--gris-txt); text-align: center; line-height: 1.6; }
+
+/* SPINNER */
+.spinner {
+  width: 24px; height: 24px;
+  border: 3px solid var(--gris3);
+  border-top-color: var(--amarillo);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  display: inline-block;
+  vertical-align: middle;
+  margin-right: 8px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* TOAST */
+.toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%) translateY(80px);
+  background: var(--gris2);
+  border: 1px solid var(--borde);
+  border-radius: 10px;
+  padding: 12px 20px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--blanco);
+  z-index: 999;
+  transition: transform 0.3s ease;
+  white-space: nowrap;
+  max-width: 90vw;
+}
+.toast.show { transform: translateX(-50%) translateY(0); }
+.toast.err { border-color: var(--rojo); color: #ff7a84; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <div class="logo-txt">TR4K</div>
+    <div class="logo-sub">Panel Conductor</div>
+  </div>
+  <div class="live-clock" id="clock">--:--</div>
+</div>
+<div class="progress-bar">
+  <div class="progress-fill" id="progressFill" style="width:0%"></div>
+</div>
+
+<div class="wrap">
+
+  <!-- ══════════════════════════════════════
+       PANTALLA 1 — SELECCIONAR VEHÍCULO
+  ══════════════════════════════════════ -->
+  <div class="screen visible" id="s1">
+    <div class="eyebrow">Paso 1 de 3</div>
+    <div class="big-title">¿Cuál<br>vehículo?</div>
+
+    <div class="card">
+      <div class="card-label">Selecciona tu placa</div>
+      <div class="placas-grid" id="placasGrid">
+        <!-- cargado desde Supabase -->
+        <div style="grid-column:1/-1; text-align:center; padding:20px; color:var(--gris-txt); font-size:13px;">
+          <span class="spinner"></span> Cargando vehículos...
+        </div>
+      </div>
+    </div>
+
+    <button class="btn-main" id="btn1" disabled onclick="goTo(2)">Continuar →</button>
+  </div>
+
+  <!-- ══════════════════════════════════════
+       PANTALLA 2 — TURNO + KILÓMETROS
+  ══════════════════════════════════════ -->
+  <div class="screen" id="s2">
+    <div class="eyebrow">Paso 2 de 3</div>
+    <div class="big-title">Turno y<br>kilómetros</div>
+
+    <div class="card">
+      <div class="card-label">Fecha del reporte</div>
+      <input class="field-input" type="date" id="fechaReporte" style="font-size:17px; font-weight:600;">
+    </div>
+
+    <div class="card">
+      <div class="card-label">¿Qué reporte es este?</div>
+      <div class="turno-row">
+        <div class="turno-btn" id="tMañana" onclick="selTurno('mañana')">
+          <span class="turno-icon">🌅</span>
+          <div class="turno-label">MAÑANA</div>
+          <div class="turno-sub">Inicio de ruta</div>
+        </div>
+        <div class="turno-btn" id="tTarde" onclick="selTurno('tarde')">
+          <span class="turno-icon">🌆</span>
+          <div class="turno-label">TARDE</div>
+          <div class="turno-sub">Fin de ruta</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" id="cardKm">
+      <div class="card-label" id="kmCardLabel">Kilometraje</div>
+
+      <div class="field-wrap" id="wrapKmInicio">
+        <label class="field-label">KM al salir</label>
+        <input class="field-input" type="number" inputmode="numeric" id="kmInicio"
+          placeholder="Ej: 48520" oninput="calcDelta()">
+        <div class="field-hint">Odómetro al arrancar hoy</div>
+      </div>
+
+      <div class="field-wrap" id="wrapKmFinInicio" style="display:none">
+        <label class="field-label">KM al salir (si no lo registraste en la mañana)</label>
+        <input class="field-input" type="number" inputmode="numeric" id="kmFinInicio"
+          placeholder="Ej: 48520" oninput="calcDelta()" style="opacity:0.7">
+        <div class="field-hint">Solo si no registraste el turno mañana</div>
+      </div>
+
+      <div class="field-wrap" id="wrapKmFin" style="display:none">
+        <label class="field-label">KM al llegar</label>
+        <input class="field-input" type="number" inputmode="numeric" id="kmFin"
+          placeholder="Ej: 48850" oninput="calcDelta()">
+        <div class="field-hint">Odómetro al terminar</div>
+      </div>
+
+      <div class="km-delta" id="kmDelta" style="display:none">
+        <span class="km-delta-label">Recorrido del día</span>
+        <span class="km-delta-val" id="kmDeltaVal">0 km</span>
+      </div>
+    </div>
+
+    <button class="btn-main" id="btn2" disabled onclick="goTo(3)">Continuar →</button>
+    <button class="btn-sec" onclick="goTo(1)">← Volver</button>
+  </div>
+
+  <!-- ══════════════════════════════════════
+       PANTALLA 3 — NOVEDADES + RESUMEN
+  ══════════════════════════════════════ -->
+  <div class="screen" id="s3">
+    <div class="eyebrow">Paso 3 de 3</div>
+    <div class="big-title">Novedades<br>y envío</div>
+
+    <div class="card">
+      <div class="card-label">¿Ocurrió algo? (opcional)</div>
+      <div class="novedad-tipos" id="novedadTipos">
+        <div class="nov-tag" onclick="toggleNov(this,'accidente')">🚨 Accidente</div>
+        <div class="nov-tag" onclick="toggleNov(this,'daño')">🔧 Daño mecánico</div>
+        <div class="nov-tag" onclick="toggleNov(this,'multa')">🚔 Infracción</div>
+        <div class="nov-tag" onclick="toggleNov(this,'combustible')">⛽ Combustible</div>
+        <div class="nov-tag" onclick="toggleNov(this,'entrega')">📦 Problema entrega</div>
+        <div class="nov-tag" onclick="toggleNov(this,'otro')">📝 Otro</div>
+      </div>
+      <textarea class="field-input" id="novedadTexto"
+        placeholder="Describe brevemente lo que pasó (opcional)..."></textarea>
+    </div>
+
+    <!-- RESUMEN -->
+    <div class="card">
+      <div class="card-label">Resumen del reporte</div>
+      <div class="resumen-row">
+        <span class="res-label">Vehículo</span>
+        <span class="res-val" id="resPlaca">—</span>
+      </div>
+      <div class="resumen-row">
+        <span class="res-label">Turno</span>
+        <span class="res-val ok" id="resTurno">—</span>
+      </div>
+      <div class="resumen-row">
+        <span class="res-label">Fecha</span>
+        <span class="res-val" id="resFecha">—</span>
+      </div>
+      <div class="resumen-row" id="resRowKmInicio">
+        <span class="res-label">KM salida</span>
+        <span class="res-val" id="resKmInicio">—</span>
+      </div>
+      <div class="resumen-row" id="resRowKmFin" style="display:none">
+        <span class="res-label">KM llegada</span>
+        <span class="res-val" id="resKmFin">—</span>
+      </div>
+      <div class="resumen-row" id="resRowKmDia" style="display:none">
+        <span class="res-label">Recorrido</span>
+        <span class="res-val highlight" id="resKmDia">—</span>
+      </div>
+    </div>
+
+    <button class="btn-main" id="btnEnviar" onclick="enviar()">
+      Enviar al Dashboard ✓
+    </button>
+    <button class="btn-sec" onclick="goTo(2)">← Volver</button>
+  </div>
+
+  <!-- ══════════════════════════════════════
+       PANTALLA 4 — RESULTADO
+  ══════════════════════════════════════ -->
+  <div class="screen" id="s4">
+    <div style="text-align:center; padding-top:30px;">
+      <div class="estado-icon ok" id="estadoIcon">✅</div>
+      <div class="estado-titulo" id="estadoTitulo">¡Registrado!</div>
+      <div class="estado-sub" id="estadoSub">
+        Tu reporte llegó al dashboard de TR4K.<br>Puedes cerrar esta pantalla.
+      </div>
+    </div>
+
+    <div class="card" id="resumenFinal" style="margin-top:30px;">
+      <div class="card-label">Registro enviado</div>
+      <div class="resumen-row">
+        <span class="res-label">Vehículo</span>
+        <span class="res-val" id="rfPlaca">—</span>
+      </div>
+      <div class="resumen-row">
+        <span class="res-label">Turno</span>
+        <span class="res-val ok" id="rfTurno">—</span>
+      </div>
+      <div class="resumen-row">
+        <span class="res-label">KM registrado</span>
+        <span class="res-val highlight" id="rfKm">—</span>
+      </div>
+      <div class="resumen-row" id="rfNovedadRow" style="display:none">
+        <span class="res-label">Novedad</span>
+        <span class="res-val" id="rfNovedad" style="color:var(--rojo)">—</span>
+      </div>
+    </div>
+
+    <button class="btn-main" onclick="reiniciar()" style="margin-top:10px;">
+      Nuevo reporte
+    </button>
+  </div>
+
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+// CONFIGURACIÓN — REEMPLAZA con tus valores reales de Supabase
+// ═══════════════════════════════════════════════════════════
+const SUPABASE_URL  = 'https://zmkhrhevguytxnlivpoa.supabase.co';
+const SUPABASE_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpta2hyaGV2Z3V5dHhubGl2cG9hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4NjgyNjAsImV4cCI6MjA4OTQ0NDI2MH0.iQmf0zKpPI526RS8apFSLbI3p5Vy8aYwgWKtX9uhZXg';
+
+// ═══════════════════════════════════════════════════════════
+// ESTADO
+// ═══════════════════════════════════════════════════════════
+const state = {
+  vehiculos: [],       // [{id, placa, marca, modelo, km_actual}]
+  vehiculoSel: null,   // objeto del vehículo seleccionado
+  turno: null,         // 'mañana' | 'tarde'
+  novedades: [],       // array de strings seleccionados
+  kmLog: null,         // registro del turno mañana (para tarde)
+};
+
+// ═══════════════════════════════════════════════════════════
+// SUPABASE HELPER
+// ═══════════════════════════════════════════════════════════
+async function sb(method, path, body, upsert = false) {
+  const url = `${SUPABASE_URL}/rest/v1/${path}`;
+  let prefer = 'return=minimal';
+  if (method === 'POST' && upsert) prefer = 'return=representation,resolution=merge-duplicates';
+  else if (method === 'POST') prefer = 'return=representation';
+  const headers = {
+    'apikey': SUPABASE_KEY,
+    'Authorization': `Bearer ${SUPABASE_KEY}`,
+    'Content-Type': 'application/json',
+    'Prefer': prefer
+  };
+  const res = await fetch(url, { method, headers, body: body ? JSON.stringify(body) : undefined });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || err.hint || `HTTP ${res.status}`);
+  }
+  const txt = await res.text();
+  return txt ? JSON.parse(txt) : null;
+}
+
+// ═══════════════════════════════════════════════════════════
+// RELOJ
+// ═══════════════════════════════════════════════════════════
+function tickClock() {
+  const now = new Date();
+  document.getElementById('clock').textContent =
+    `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+}
+setInterval(tickClock, 1000);
+tickClock();
+
+// ═══════════════════════════════════════════════════════════
+// CARGA VEHÍCULOS
+// ═══════════════════════════════════════════════════════════
+async function cargarVehiculos() {
+  const grid = document.getElementById('placasGrid');
+  try {
+    const data = await sb('GET', 'vehicles?select=id,placa,marca,modelo,km_actual&order=placa');
+    state.vehiculos = data || [];
+    if (!state.vehiculos.length) {
+      grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:20px;color:var(--gris-txt);font-size:13px;">
+        No hay vehículos registrados en el dashboard.</div>`;
+      return;
+    }
+    grid.innerHTML = state.vehiculos.map(v => `
+      <div class="placa-item" onclick="selPlaca('${v.id}')" id="p_${v.id}">
+        <span class="placa-check">✓</span>
+        <span class="placa-num">${v.placa}</span>
+        <span class="placa-marca">${v.marca || ''} ${v.modelo || ''}</span>
+      </div>`).join('');
+  } catch(e) {
+    grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:20px;color:var(--rojo);font-size:13px;">
+      Error cargando vehículos.<br><small>${e.message}</small></div>`;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// SELECCIÓN PLACA
+// ═══════════════════════════════════════════════════════════
+function selPlaca(id) {
+  document.querySelectorAll('.placa-item').forEach(el => el.classList.remove('sel'));
+  document.getElementById(`p_${id}`).classList.add('sel');
+  state.vehiculoSel = state.vehiculos.find(v => v.id === id);
+  document.getElementById('btn1').disabled = false;
+}
+
+// ═══════════════════════════════════════════════════════════
+// SELECCIÓN TURNO
+// ═══════════════════════════════════════════════════════════
+function selTurno(t) {
+  state.turno = t;
+  document.getElementById('tMañana').classList.toggle('sel', t === 'mañana');
+  document.getElementById('tTarde').classList.toggle('sel', t === 'tarde');
+
+  // Mañana → solo km_inicio; Tarde → km_fin (km_inicio viene del log de mañana)
+  document.getElementById('wrapKmInicio').style.display = t === 'mañana' ? 'block' : 'none';
+  document.getElementById('wrapKmFin').style.display    = t === 'tarde'  ? 'block' : 'none';
+  document.getElementById('kmCardLabel').textContent    = t === 'mañana' ? 'Odómetro al salir' : 'Odómetro al llegar';
+
+  // Si es tarde: intentar pre-llenar km_inicio del log de hoy
+  if (t === 'tarde' && state.vehiculoSel) { buscarLogMañana(); }
+
+  calcDelta();
+}
+
+async function buscarLogMañana() {
+  const fecha = document.getElementById('fechaReporte').value || hoyISO();
+  try {
+    const rows = await sb('GET',
+      `km_logs?vehicle_id=eq.${state.vehiculoSel.id}&fecha=eq.${fecha}&select=km_inicio,km_fin`);
+    if (rows && rows[0] && rows[0].km_inicio) {
+      state.kmLog = rows[0];
+      document.getElementById('kmDelta').style.display = 'flex';
+      document.getElementById('kmDeltaVal').textContent = `Salida: ${rows[0].km_inicio.toLocaleString()} km`;
+    } else {
+      state.kmLog = null;
+      document.getElementById('kmDelta').style.display = 'none';
+      document.getElementById('kmDeltaVal').textContent = '';
+    }
+  } catch { /* silencioso */ }
+}
+
+// ═══════════════════════════════════════════════════════════
+// CÁLCULO DELTA
+// ═══════════════════════════════════════════════════════════
+function calcDelta() {
+  const btn2 = document.getElementById('btn2');
+  if (state.turno === 'mañana') {
+    const km = parseInt(document.getElementById('kmInicio').value);
+    btn2.disabled = !(state.turno && !isNaN(km) && km > 0);
+    document.getElementById('kmDelta').style.display = 'none';
+  } else if (state.turno === 'tarde') {
+    const fin  = parseInt(document.getElementById('kmFin').value);
+    const iniLog = state.kmLog?.km_inicio;
+    const iniManual = parseInt(document.getElementById('kmFinInicio').value);
+    const ini  = iniLog || (!isNaN(iniManual) && iniManual > 0 ? iniManual : null);
+
+    // Mostrar campo km_inicio manual solo si no hay log de mañana
+    document.getElementById('wrapKmFinInicio').style.display = !iniLog ? 'block' : 'none';
+
+    btn2.disabled = !(state.turno && !isNaN(fin) && fin > 0);
+    if (ini && !isNaN(fin) && fin > ini) {
+      const delta = fin - ini;
+      document.getElementById('kmDelta').style.display = 'flex';
+      document.getElementById('kmDeltaVal').textContent = `✓ Recorrido: ${delta.toLocaleString()} km`;
+    } else if (!isNaN(fin) && fin > 0) {
+      document.getElementById('kmDelta').style.display = 'flex';
+      document.getElementById('kmDeltaVal').textContent = `KM llegada: ${fin.toLocaleString()}`;
+    }
+  } else {
+    btn2.disabled = true;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// NOVEDADES
+// ═══════════════════════════════════════════════════════════
+function toggleNov(el, tipo) {
+  el.classList.toggle('sel');
+  if (el.classList.contains('sel')) {
+    if (!state.novedades.includes(tipo)) state.novedades.push(tipo);
+  } else {
+    state.novedades = state.novedades.filter(n => n !== tipo);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// NAVEGACIÓN
+// ═══════════════════════════════════════════════════════════
+function goTo(n) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('visible'));
+  document.getElementById('s'+n).classList.add('visible');
+
+  // progreso
+  const pct = ((n-1) / 3) * 100;
+  document.getElementById('progressFill').style.width = pct + '%';
+
+  if (n === 3) { llenarResumen(); }
+  window.scrollTo(0, 0);
+}
+
+function llenarResumen() {
+  const v = state.vehiculoSel;
+  const fechaInput = document.getElementById('fechaReporte').value;
+  const [fy, fm, fd] = fechaInput.split('-').map(Number);
+  const fechaObj = new Date(fy, fm-1, fd);
+  const fechaStr = fechaObj.toLocaleDateString('es-CO', { weekday:'long', day:'numeric', month:'long' });
+
+  document.getElementById('resPlaca').textContent = v ? `${v.placa} — ${v.marca || ''}` : '—';
+  document.getElementById('resTurno').textContent  = state.turno === 'mañana' ? '🌅 Mañana' : '🌆 Tarde';
+  document.getElementById('resFecha').textContent  = fechaStr;
+
+  if (state.turno === 'mañana') {
+    const ki = document.getElementById('kmInicio').value;
+    document.getElementById('resKmInicio').textContent = ki ? `${parseInt(ki).toLocaleString()} km` : '—';
+    document.getElementById('resRowKmInicio').style.display = 'flex';
+    document.getElementById('resRowKmFin').style.display    = 'none';
+    document.getElementById('resRowKmDia').style.display    = 'none';
+  } else {
+    const kf  = document.getElementById('kmFin').value;
+    const ini = state.kmLog?.km_inicio;
+    document.getElementById('resKmFin').textContent  = kf  ? `${parseInt(kf).toLocaleString()} km` : '—';
+    document.getElementById('resRowKmFin').style.display    = 'flex';
+    document.getElementById('resRowKmInicio').style.display = 'none';
+    if (ini && kf && parseInt(kf) > ini) {
+      document.getElementById('resKmDia').textContent = `${(parseInt(kf)-ini).toLocaleString()} km`;
+      document.getElementById('resRowKmDia').style.display = 'flex';
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// ENVIAR A SUPABASE
+// ═══════════════════════════════════════════════════════════
+async function enviar() {
+  const btn = document.getElementById('btnEnviar');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Enviando...';
+
+  const hoy = document.getElementById('fechaReporte').value || hoyISO();
+  const v   = state.vehiculoSel;
+  const novTipos  = state.novedades.join(', ');
+  const novTexto  = document.getElementById('novedadTexto').value.trim();
+  const novFinal  = [novTipos, novTexto].filter(Boolean).join(' — ');
+
+  try {
+    if (state.turno === 'mañana') {
+      const kmI = parseInt(document.getElementById('kmInicio').value);
+
+      // UPSERT km_log con km_inicio (merge si ya existe)
+      await sb('POST', 'km_logs', {
+        vehicle_id: v.id,
+        fecha: hoy,
+        km_inicio: kmI,
+        km_dia: 0,
+        excesos: 0
+      }, true);  // upsert=true
+
+      // Actualizar km_actual del vehículo
+      await sb('PATCH', `vehicles?id=eq.${v.id}`, { km_actual: kmI });
+
+      // Si hay novedad, guardar en costs como nota
+      if (novFinal) {
+        await sb('POST', 'costs', {
+          vehicle_id: v.id,
+          fecha: hoy,
+          tipo: 'novedad',
+          descripcion: `[CONDUCTOR MAÑANA] ${novFinal}`,
+          monto: 0
+        });
+      }
+
+      mostrarExito(v.placa, '🌅 Mañana', `KM salida: ${kmI.toLocaleString()}`, novFinal);
+
+    } else {
+      // TARDE
+      const kmF = parseInt(document.getElementById('kmFin').value);
+      const iniManualTarde = parseInt(document.getElementById('kmFinInicio').value);
+      const kmI = state.kmLog?.km_inicio
+        || (!isNaN(iniManualTarde) && iniManualTarde > 0 ? iniManualTarde : null);
+      const kmDia = (kmI && kmF > kmI) ? (kmF - kmI) : 0;
+
+      // UPSERT — merge si ya existe el row de mañana
+      await sb('POST', 'km_logs', {
+        vehicle_id: v.id,
+        fecha: hoy,
+        km_inicio: kmI || null,
+        km_fin: kmF,
+        km_dia: kmDia > 0 ? kmDia : 0,
+        excesos: 0
+      }, true);  // upsert=true
+
+      // Actualizar km_actual
+      await sb('PATCH', `vehicles?id=eq.${v.id}`, { km_actual: kmF });
+
+      // Novedad
+      if (novFinal) {
+        await sb('POST', 'costs', {
+          vehicle_id: v.id,
+          fecha: hoy,
+          tipo: 'novedad',
+          descripcion: `[CONDUCTOR TARDE] ${novFinal}`,
+          monto: 0
+        });
+      }
+
+      const kmStr = kmDia > 0
+        ? `Recorrido: ${kmDia.toLocaleString()} km`
+        : `KM llegada: ${kmF.toLocaleString()}`;
+      mostrarExito(v.placa, '🌆 Tarde', kmStr, novFinal);
+    }
+
+  } catch(e) {
+    btn.disabled = false;
+    btn.innerHTML = 'Enviar al Dashboard ✓';
+    toast('Error: ' + e.message, true);
+    console.error(e);
+  }
+}
+
+function mostrarExito(placa, turno, kmStr, novedad) {
+  document.getElementById('rfPlaca').textContent = placa;
+  document.getElementById('rfTurno').textContent = turno;
+  document.getElementById('rfKm').textContent    = kmStr;
+  if (novedad) {
+    document.getElementById('rfNovedad').textContent = novedad;
+    document.getElementById('rfNovedadRow').style.display = 'flex';
+  }
+  goTo(4);
+  document.getElementById('progressFill').style.width = '100%';
+}
+
+// ═══════════════════════════════════════════════════════════
+// UTILS
+// ═══════════════════════════════════════════════════════════
+function hoyISO() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+function toast(msg, isErr = false) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast' + (isErr ? ' err' : '');
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3500);
+}
+
+function reiniciar() {
+  state.vehiculoSel = null;
+  state.turno = null;
+  state.novedades = [];
+  state.kmLog = null;
+  document.getElementById('kmInicio').value = '';
+  document.getElementById('kmFin').value = '';
+  document.getElementById('novedadTexto').value = '';
+  document.querySelectorAll('.nov-tag').forEach(t => t.classList.remove('sel'));
+  document.querySelectorAll('.placa-item').forEach(p => p.classList.remove('sel'));
+  document.getElementById('btn1').disabled = true;
+  document.getElementById('btn2').disabled = true;
+  goTo(1);
+}
+
+// ═══════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════
+// Poner fecha de hoy por defecto
+document.getElementById('fechaReporte').value = hoyISO();
+cargarVehiculos();
+</script>
+</body>
+</html>
